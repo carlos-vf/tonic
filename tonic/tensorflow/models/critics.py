@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 
 from tonic.tensorflow import models
 
@@ -47,11 +48,20 @@ class CategoricalWithSupport:
         return tf.reduce_sum(delta_clipped * self.probabilities[:, None], 2)
 
 
+@keras.saving.register_keras_serializable()
 class DistributionalValueHead(tf.keras.Model):
-    def __init__(self, vmin, vmax, num_atoms, dense_kwargs=None):
-        super().__init__()
+    def __init__(self, vmin, vmax, num_atoms, dense_kwargs=None, **kwargs): # Added **kwargs
+        super().__init__(**kwargs) # Passed **kwargs to the parent constructor
+
         if dense_kwargs is None:
             dense_kwargs = models.default_dense_kwargs()
+        
+        # Store these for get_config
+        self._vmin = vmin
+        self._vmax = vmax
+        self._num_atoms = num_atoms
+        self._dense_kwargs = dense_kwargs
+
         self.distributional_layer = tf.keras.layers.Dense(
             num_atoms, **dense_kwargs)
         self.values = tf.cast(tf.linspace(vmin, vmax, num_atoms), tf.float32)
@@ -66,10 +76,41 @@ class DistributionalValueHead(tf.keras.Model):
         logits = self.distributional_layer(inputs)
         return CategoricalWithSupport(values=self.values, logits=logits)
 
+    def get_config(self):
+        # Start with the base config from tf.keras.Model
+        config = super().get_config()
+        
+        # Add the specific arguments for this class's __init__
+        config['vmin'] = self._vmin
+        config['vmax'] = self._vmax
+        config['num_atoms'] = self._num_atoms
+        # Only serialize dense_kwargs if it's not the default, or if it's a serializable dict
+        if self._dense_kwargs is not None:
+             config['dense_kwargs'] = self._dense_kwargs
+        
+        # If distributional_layer was a custom Keras object (which Dense is not),
+        # you'd serialize it similarly to how you did in Critic's get_config.
+        # For standard Keras layers like Dense, they are automatically handled.
+        
+        return config
 
+    @classmethod
+    def from_config(cls, config):
+        # Extract the specific arguments for this class's __init__
+        vmin = config.pop('vmin')
+        vmax = config.pop('vmax')
+        num_atoms = config.pop('num_atoms')
+        dense_kwargs = config.pop('dense_kwargs', None) # Use .pop with default for optional args
+
+        # Create an instance of DistributionalValueHead using the extracted arguments
+        # Pass the remaining config (like 'name', 'trainable', 'dtype') to the constructor
+        return cls(vmin=vmin, vmax=vmax, num_atoms=num_atoms, dense_kwargs=dense_kwargs, **config)
+
+
+@keras.saving.register_keras_serializable()
 class Critic(tf.keras.Model):
-    def __init__(self, encoder, torso, head):
-        super().__init__()
+    def __init__(self, encoder, torso, head, **kwargs):
+        super().__init__(**kwargs)
         self.encoder = encoder
         self.torso = torso
         self.head = head
@@ -85,3 +126,32 @@ class Critic(tf.keras.Model):
         out = self.encoder(*inputs)
         out = self.torso(out)
         return self.head(out)
+
+    def get_config(self):
+        # Start with the base config from tf.keras.Model
+        config = super().get_config()
+        
+        # Add the configurations of your sub-models/layers
+        # Keras will automatically handle serialization for Keras objects
+        # if they are registered or standard Keras layers.
+        config['encoder'] = keras.saving.serialize_keras_object(self.encoder)
+        config['torso'] = keras.saving.serialize_keras_object(self.torso)
+        config['head'] = keras.saving.serialize_keras_object(self.head)
+        
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        # Extract the configurations of your sub-models/layers
+        encoder_config = config.pop('encoder')
+        torso_config = config.pop('torso')
+        head_config = config.pop('head')
+
+        # Deserialize the sub-models/layers
+        encoder = keras.saving.deserialize_keras_object(encoder_config)
+        torso = keras.saving.deserialize_keras_object(torso_config)
+        head = keras.saving.deserialize_keras_object(head_config)
+        
+        # Create an instance of Critic using the deserialized components
+        # Pass the remaining config (like 'name', 'trainable', 'dtype') to the constructor
+        return cls(encoder=encoder, torso=torso, head=head, **config)
