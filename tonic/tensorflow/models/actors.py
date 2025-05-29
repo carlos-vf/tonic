@@ -102,57 +102,47 @@ class GaussianPolicyHead(tf.keras.Model):
 @keras.saving.register_keras_serializable()
 class DeterministicPolicyHead(tf.keras.Model):
     def __init__(self, action_size=None, activation='tanh', dense_kwargs=None, **kwargs): # Added action_size and **kwargs
-        super().__init__(**kwargs) # Pass **kwargs to the parent constructor
+        super().__init__(**kwargs)
 
-        # Store these for get_config
-        self._action_size = action_size # Store action_size
+        self._action_size = action_size
         self._activation = activation
         
         if dense_kwargs is None:
             dense_kwargs = models.default_dense_kwargs()
-        self._dense_kwargs = dense_kwargs # Store dense_kwargs
+        self._dense_kwargs = dense_kwargs
 
-        # Initialize action_layer here if action_size is known at init time
-        # This is more robust for Keras serialization.
         if self._action_size is not None:
             self.action_layer = tf.keras.layers.Dense(
                 self._action_size, self._activation, **self._dense_kwargs)
         else:
-            self.action_layer = None # It will be created in initialize if needed
+            self.action_layer = None 
 
     def initialize(self, action_size):
-        # Update action_size and create layer if not already done in __init__
         if self.action_layer is None or self._action_size != action_size:
             self._action_size = action_size
             self.action_layer = tf.keras.layers.Dense(
                 self._action_size, self._activation, **self._dense_kwargs)
 
     def call(self, inputs):
-        # Ensure action_layer is built before calling
+
         if self.action_layer is None:
             raise ValueError("action_layer not initialized. Call .initialize(action_size) first or provide action_size during instantiation.")
         return self.action_layer(inputs)
 
     def get_config(self):
-        # Start with the base config from tf.keras.Model
         config = super().get_config()
         
-        # Add the specific arguments for this class's __init__
         config['action_size'] = self._action_size
         config['activation'] = self._activation
-        config['dense_kwargs'] = self._dense_kwargs # Store the actual dict
-
-        # If self.action_layer was a custom Keras object (which tf.keras.layers.Dense is not),
-        # you'd serialize it using keras.saving.serialize_keras_object(self.action_layer).
-        # For standard Keras layers like Dense, they are automatically handled as part of the model.
-        
+        config['dense_kwargs'] = self._dense_kwargs 
+ 
         return config
 
 
 @keras.saving.register_keras_serializable()
 class Actor(tf.keras.Model):
-    def __init__(self, encoder, torso, head, **kwargs): # Added **kwargs
-        super().__init__(**kwargs) # Passed **kwargs to the parent constructor
+    def __init__(self, encoder, torso, head, **kwargs):
+        super().__init__(**kwargs) 
         self.encoder = encoder
         self.torso = torso
         self.head = head
@@ -169,10 +159,8 @@ class Actor(tf.keras.Model):
         return self.head(out)
 
     def get_config(self):
-        # Start with the base config from tf.keras.Model
         config = super().get_config()
         
-        # Add the configurations of your sub-models/layers
         config['encoder'] = keras.saving.serialize_keras_object(self.encoder)
         config['torso'] = keras.saving.serialize_keras_object(self.torso)
         config['head'] = keras.saving.serialize_keras_object(self.head)
@@ -181,16 +169,12 @@ class Actor(tf.keras.Model):
 
     @classmethod
     def from_config(cls, config):
-        # Extract the configurations of your sub-models/layers
         encoder_config = config.pop('encoder')
         torso_config = config.pop('torso')
         head_config = config.pop('head')
 
-        # Deserialize the sub-models/layers
         encoder = keras.saving.deserialize_keras_object(encoder_config)
         torso = keras.saving.deserialize_keras_object(torso_config)
         head = keras.saving.deserialize_keras_object(head_config)
         
-        # Create an instance of Actor using the deserialized components
-        # Pass the remaining config (like 'name', 'trainable', 'dtype') to the constructor
         return cls(encoder=encoder, torso=torso, head=head, **config)
