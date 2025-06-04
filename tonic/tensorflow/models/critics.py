@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 
 from tonic.tensorflow import models
 
@@ -47,11 +48,19 @@ class CategoricalWithSupport:
         return tf.reduce_sum(delta_clipped * self.probabilities[:, None], 2)
 
 
+@keras.saving.register_keras_serializable()
 class DistributionalValueHead(tf.keras.Model):
-    def __init__(self, vmin, vmax, num_atoms, dense_kwargs=None):
-        super().__init__()
+    def __init__(self, vmin, vmax, num_atoms, dense_kwargs=None, **kwargs): # Added **kwargs
+        super().__init__(**kwargs) 
+
         if dense_kwargs is None:
             dense_kwargs = models.default_dense_kwargs()
+        
+        self._vmin = vmin
+        self._vmax = vmax
+        self._num_atoms = num_atoms
+        self._dense_kwargs = dense_kwargs
+
         self.distributional_layer = tf.keras.layers.Dense(
             num_atoms, **dense_kwargs)
         self.values = tf.cast(tf.linspace(vmin, vmax, num_atoms), tf.float32)
@@ -66,10 +75,31 @@ class DistributionalValueHead(tf.keras.Model):
         logits = self.distributional_layer(inputs)
         return CategoricalWithSupport(values=self.values, logits=logits)
 
+    def get_config(self):
+        config = super().get_config()
+        
+        config['vmin'] = self._vmin
+        config['vmax'] = self._vmax
+        config['num_atoms'] = self._num_atoms
+        if self._dense_kwargs is not None:
+             config['dense_kwargs'] = self._dense_kwargs
+        
+        return config
 
+    @classmethod
+    def from_config(cls, config):
+        vmin = config.pop('vmin')
+        vmax = config.pop('vmax')
+        num_atoms = config.pop('num_atoms')
+        dense_kwargs = config.pop('dense_kwargs', None) 
+
+        return cls(vmin=vmin, vmax=vmax, num_atoms=num_atoms, dense_kwargs=dense_kwargs, **config)
+
+
+@keras.saving.register_keras_serializable()
 class Critic(tf.keras.Model):
-    def __init__(self, encoder, torso, head):
-        super().__init__()
+    def __init__(self, encoder, torso, head, **kwargs):
+        super().__init__(**kwargs)
         self.encoder = encoder
         self.torso = torso
         self.head = head
@@ -85,3 +115,23 @@ class Critic(tf.keras.Model):
         out = self.encoder(*inputs)
         out = self.torso(out)
         return self.head(out)
+
+    def get_config(self):
+        config = super().get_config()
+        config['encoder'] = keras.saving.serialize_keras_object(self.encoder)
+        config['torso'] = keras.saving.serialize_keras_object(self.torso)
+        config['head'] = keras.saving.serialize_keras_object(self.head)
+        
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        encoder_config = config.pop('encoder')
+        torso_config = config.pop('torso')
+        head_config = config.pop('head')
+
+        encoder = keras.saving.deserialize_keras_object(encoder_config)
+        torso = keras.saving.deserialize_keras_object(torso_config)
+        head = keras.saving.deserialize_keras_object(head_config)
+        
+        return cls(encoder=encoder, torso=torso, head=head, **config)

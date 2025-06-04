@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
+import keras 
 
 from tonic.tensorflow import models
 
@@ -98,25 +99,50 @@ class GaussianPolicyHead(tf.keras.Model):
         return self.distribution(loc, scale)
 
 
+@keras.saving.register_keras_serializable()
 class DeterministicPolicyHead(tf.keras.Model):
-    def __init__(self, activation='tanh', dense_kwargs=None):
-        super().__init__()
-        self.activation = activation
+    def __init__(self, action_size=None, activation='tanh', dense_kwargs=None, **kwargs): # Added action_size and **kwargs
+        super().__init__(**kwargs)
+
+        self._action_size = action_size
+        self._activation = activation
+        
         if dense_kwargs is None:
             dense_kwargs = models.default_dense_kwargs()
-        self.dense_kwargs = dense_kwargs
+        self._dense_kwargs = dense_kwargs
+
+        if self._action_size is not None:
+            self.action_layer = tf.keras.layers.Dense(
+                self._action_size, self._activation, **self._dense_kwargs)
+        else:
+            self.action_layer = None 
 
     def initialize(self, action_size):
-        self.action_layer = tf.keras.layers.Dense(
-            action_size, self.activation, **self.dense_kwargs)
+        if self.action_layer is None or self._action_size != action_size:
+            self._action_size = action_size
+            self.action_layer = tf.keras.layers.Dense(
+                self._action_size, self._activation, **self._dense_kwargs)
 
     def call(self, inputs):
+
+        if self.action_layer is None:
+            raise ValueError("action_layer not initialized. Call .initialize(action_size) first or provide action_size during instantiation.")
         return self.action_layer(inputs)
 
+    def get_config(self):
+        config = super().get_config()
+        
+        config['action_size'] = self._action_size
+        config['activation'] = self._activation
+        config['dense_kwargs'] = self._dense_kwargs 
+ 
+        return config
 
+
+@keras.saving.register_keras_serializable()
 class Actor(tf.keras.Model):
-    def __init__(self, encoder, torso, head):
-        super().__init__()
+    def __init__(self, encoder, torso, head, **kwargs):
+        super().__init__(**kwargs) 
         self.encoder = encoder
         self.torso = torso
         self.head = head
@@ -131,3 +157,24 @@ class Actor(tf.keras.Model):
         out = self.encoder(*inputs)
         out = self.torso(out)
         return self.head(out)
+
+    def get_config(self):
+        config = super().get_config()
+        
+        config['encoder'] = keras.saving.serialize_keras_object(self.encoder)
+        config['torso'] = keras.saving.serialize_keras_object(self.torso)
+        config['head'] = keras.saving.serialize_keras_object(self.head)
+        
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        encoder_config = config.pop('encoder')
+        torso_config = config.pop('torso')
+        head_config = config.pop('head')
+
+        encoder = keras.saving.deserialize_keras_object(encoder_config)
+        torso = keras.saving.deserialize_keras_object(torso_config)
+        head = keras.saving.deserialize_keras_object(head_config)
+        
+        return cls(encoder=encoder, torso=torso, head=head, **config)

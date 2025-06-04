@@ -6,7 +6,7 @@ class Buffer:
     and using n-step returns.'''
 
     def __init__(
-        self, size=int(1e6), return_steps=1, batch_iterations=50,
+        self, size=int(1e5), return_steps=1, batch_iterations=50,
         batch_size=100, discount_factor=0.99, steps_before_batches=int(1e4),
         steps_between_batches=50
     ):

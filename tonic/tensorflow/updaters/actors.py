@@ -11,7 +11,7 @@ FLOAT_EPSILON = 1e-8
 class StochasticPolicyGradient:
     def __init__(self, optimizer=None, entropy_coeff=0, gradient_clip=0):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=3e-4, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=3e-4, epsilon=1e-8)
         self.entropy_coeff = entropy_coeff
         self.gradient_clip = gradient_clip
 
@@ -54,7 +54,7 @@ class ClippedRatio:
         entropy_coeff=0, gradient_clip=0
     ):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=3e-4, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=3e-4, epsilon=1e-8)
         self.ratio_clip = ratio_clip
         self.kl_threshold = kl_threshold
         self.entropy_coeff = entropy_coeff
@@ -153,7 +153,7 @@ class TrustRegionPolicyGradient:
 class DeterministicPolicyGradient:
     def __init__(self, optimizer=None, gradient_clip=0):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -179,7 +179,7 @@ class DeterministicPolicyGradient:
 class DistributionalDeterministicPolicyGradient:
     def __init__(self, optimizer=None, gradient_clip=0):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -206,7 +206,7 @@ class DistributionalDeterministicPolicyGradient:
 class TwinCriticSoftDeterministicPolicyGradient:
     def __init__(self, optimizer=None, entropy_coeff=0.2, gradient_clip=0):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.entropy_coeff = entropy_coeff
         self.gradient_clip = gradient_clip
 
@@ -257,9 +257,9 @@ class MaximumAPosterioriPolicyOptimization:
         self.epsilon_penalty = epsilon_penalty
         self.per_dim_constraining = per_dim_constraining
         self.actor_optimizer = actor_optimizer or \
-            tf.keras.optimizers.Adam(lr=3e-4, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=3e-4, epsilon=1e-8)
         self.dual_optimizer = actor_optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-2, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-2, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model, action_space):

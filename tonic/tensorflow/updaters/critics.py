@@ -7,7 +7,7 @@ class VRegression:
     def __init__(self, loss=None, optimizer=None, gradient_clip=0):
         self.loss = loss or tf.keras.losses.MeanSquaredError()
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -33,7 +33,7 @@ class QRegression:
     def __init__(self, loss=None, optimizer=None, gradient_clip=0):
         self.loss = loss or tf.keras.losses.MeanSquaredError()
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -59,7 +59,7 @@ class DeterministicQLearning:
     def __init__(self, loss=None, optimizer=None, gradient_clip=0):
         self.loss = loss or tf.keras.losses.MeanSquaredError()
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -90,7 +90,7 @@ class DeterministicQLearning:
 class DistributionalDeterministicQLearning:
     def __init__(self, optimizer=None, gradient_clip=0):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -143,7 +143,7 @@ class TwinCriticDeterministicQLearning:
     ):
         self.loss = loss or tf.keras.losses.MeanSquaredError()
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.target_action_noise = target_action_noise or \
             TargetActionNoise(scale=0.2, clip=0.5)
         self.gradient_clip = gradient_clip
@@ -189,7 +189,7 @@ class TwinCriticSoftQLearning:
     ):
         self.loss = loss or tf.keras.losses.MeanSquaredError()
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.entropy_coeff = entropy_coeff
         self.gradient_clip = gradient_clip
 
@@ -241,7 +241,7 @@ class ExpectedSARSA:
         self.num_samples = num_samples
         self.loss = loss or tf.keras.losses.MeanSquaredError()
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.gradient_clip = gradient_clip
 
     def initialize(self, model):
@@ -281,7 +281,7 @@ class TwinCriticDistributionalDeterministicQLearning:
         self, optimizer=None, target_action_noise=None, gradient_clip=0
     ):
         self.optimizer = optimizer or \
-            tf.keras.optimizers.Adam(lr=1e-3, epsilon=1e-8)
+            tf.keras.optimizers.Adam(learning_rate=1e-3, epsilon=1e-8)
         self.target_action_noise = target_action_noise or \
             TargetActionNoise(scale=0.2, clip=0.5)
         self.gradient_clip = gradient_clip
